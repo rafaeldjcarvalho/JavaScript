@@ -1,15 +1,15 @@
 /* Geral */
 * {
-    padding: 0;
-    margin: 0;
+    padding: 0px;
+    margin: 0px;
     font-family: Helvetica;
     color: #333;
     box-sizing: border-box;
 }
 
 body {
-    background-image: linear-gradient(to top, lightskyblue, blue);
-
+    background-image: linear-gradient(to bottom, lightskyblue, blue);
+    height: 569px;
 }
 
 button {
