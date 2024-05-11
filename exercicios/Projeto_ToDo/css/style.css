@@ -9,7 +9,7 @@
 
 body {
     background-image: linear-gradient(to bottom, lightskyblue, blue);
-    height: 569px;
+    background-attachment: fixed;
 }
 
 button {
