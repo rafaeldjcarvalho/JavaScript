@@ -17,6 +17,10 @@ section {
     box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.4);
 }
 
+div#res {
+    padding-top: 10px;
+}
+
 footer {
     color: white;
     text-align: center;
