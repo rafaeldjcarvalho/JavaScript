@@ -1,0 +1,11 @@
+{
+    "manifest_version": 3,
+    "name": "Pular Ad",
+    "version": "1.0",
+    "description": "Detecta e destaca botões com o texto 'Enviar'.",
+    "permissions": ["scripting", "activeTab"],
+    "action": {
+        "default_popup": "popup.html"
+    }
+}
+  
