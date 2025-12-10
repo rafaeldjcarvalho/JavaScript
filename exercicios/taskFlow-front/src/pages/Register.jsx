@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { authService } from "../services/apiService";
 
-function Login() {
+function Register() {
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
     const [erro, setErro] = useState("");
@@ -10,20 +10,20 @@ function Login() {
 
     async function handleSubmit(e) {
         e.preventDefault();
-        setErro("");
+        setErro(""); // Limpa erros antigos
 
         try {
-            await authService.login(email, senha);
-            // O token já é salvo automaticamente no localStorage pelo authService
-            navigate("/dashboard"); // Redireciona para a área logada
+            await authService.registrar(email, senha);
+            alert("Usuário registrado com sucesso!");
+            navigate("/login"); // Redireciona para o login
         } catch (error) {
-            setErro("Email ou senha inválidos.");
+            setErro("Erro ao registrar: " + error.message);
         }
     }
 
     return (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "50px" }}>
-            <h2>Entrar no Sistema</h2>
+            <h2>Crie sua conta</h2>
             
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px", width: "300px" }}>
                 <input 
@@ -43,14 +43,14 @@ function Login() {
                 
                 {erro && <p style={{ color: "red", fontSize: "14px" }}>{erro}</p>}
                 
-                <button type="submit">Entrar</button>
+                <button type="submit">Registrar</button>
             </form>
 
             <p>
-                Ainda não tem conta? <Link to="/registrar">Registre-se aqui</Link>
+                Já tem uma conta? <Link to="/login">Faça Login</Link>
             </p>
         </div>
     );
 }
 
-export default Login;
+export default Register;
