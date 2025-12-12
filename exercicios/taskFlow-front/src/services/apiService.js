@@ -89,6 +89,7 @@ export const projetoService = {
 // --- Service: Tarefas ---
 export const tarefaService = {
     criarTarefa: async (dadosTarefa, idColuna) => {
+        console.log(idColuna);
         // Espera receber: { titulo, descricao, prioridade, ... }
         const response = await fetch(`${API_URL}/tarefas/column/${idColuna}`, {
             method: "POST",

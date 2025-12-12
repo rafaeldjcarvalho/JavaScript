@@ -1,40 +1,114 @@
-import { useState, useEffect } from "react"
-import { useParams } from "react-router-dom"
-import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd"
-import { KanbanColumn } from "../components/KanbanColumn"
-import { projetoService, tarefaService } from "../services/apiService"
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { DragDropContext } from "@hello-pangea/dnd";
+import { KanbanColumn } from "../components/KanbanColumn";
+import { TaskModal } from "../components/TaskModal"; // <--- Importe o Modal
+import { projetoService, tarefaService } from "../services/apiService";
 
 function Kanban() {
     const { id } = useParams();
-    const [projeto, setProjeto] = useState(null);
     const [colunas, setColunas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [erro, setErro] = useState(null);
+    
+    // Estados do Modal
+    const [modalAberto, setModalAberto] = useState(false);
+    const [tarefaEmEdicao, setTarefaEmEdicao] = useState(null);
+    const [colunaAlvoId, setColunaAlvoId] = useState(null);
 
-    // --- 1. Busca os dados ao carregar a página ---
+    // --- Carregamento Inicial (igual ao anterior) ---
     useEffect(() => {
         async function buscarDados() {
             try {
-                setLoading(true);
-                // Chama o serviço que busca o projeto completo (com colunas e tarefas)
                 const projeto = await projetoService.buscarProjetoCompleto(id);
-                
-                setProjeto(projeto.nome)
-                // O backend deve retornar algo como { id: 1, nome: "...", colunas: [...] }
-                setColunas(projeto.colunas || []); 
-                
+                setColunas(projeto.colunas || []);
+                setLoading(false);
             } catch (error) {
-                console.error("Erro ao buscar dados:", error);
+                console.error(error);
                 setErro("Não foi possível carregar o quadro. Verifique se você está logado.");
-            } finally {
                 setLoading(false);
             }
         }
-
         buscarDados();
     }, [id]);
 
-    // --- 2. Lógica do Drag and Drop ---
+    // --- Handlers de Abertura do Modal ---
+    function abrirModalCriacao(idColuna) {
+        setTarefaEmEdicao(null); // Garante que tá limpo
+        setColunaAlvoId(idColuna);
+        setModalAberto(true);
+    }
+
+    function abrirModalEdicao(tarefa) {
+        setTarefaEmEdicao(tarefa);
+        setModalAberto(true);
+    }
+
+    // --- Lógica CRUD ---
+
+    // 1. Salvar (Criar ou Editar)
+    async function handleSalvarTarefa(dadosFormulario) {
+        try {
+            if (dadosFormulario.id) {
+                // --- EDIÇÃO (PUT) ---
+                const tarefaAtualizada = await tarefaService.atualizarTarefa(dadosFormulario.id, dadosFormulario);
+
+                // Atualiza o estado local
+                const novasColunas = colunas.map(col => ({
+                    ...col,
+                    tarefas: col.tarefas.map(t => t.id === tarefaAtualizada.id ? tarefaAtualizada : t)
+                }));
+                setColunas(novasColunas);
+
+            } else {
+                // --- CRIAÇÃO (POST) ---
+                console.log(dadosFormulario.idColuna)
+                const novaTarefa = await tarefaService.criarTarefa({
+                    ...dadosFormulario}, dadosFormulario.idColuna // Importante mandar o ID da coluna
+                );
+
+                // Atualiza o estado local (Adiciona na coluna certa)
+                const novasColunas = colunas.map(col => {
+                    if (String(col.id) === String(dadosFormulario.idColuna)) {
+                        return { ...col, tarefas: [...col.tarefas, novaTarefa] };
+                    }
+                    return col;
+                });
+                setColunas(novasColunas);
+            }
+            setModalAberto(false); // Fecha modal
+        } catch (error) {
+            alert("Erro ao salvar tarefa");
+            console.error(error);
+        }
+    }
+
+    // 2. Excluir (DELETE)
+    async function handleExcluirTarefa(idTarefa, idColuna) {
+        if (!confirm("Tem certeza que deseja excluir esta tarefa?")) return;
+
+        try {
+            await tarefaService.excluirTarefa(idTarefa);
+
+            // Remove do estado local
+            const novasColunas = colunas.map(col => {
+                if (String(col.id) === String(idColuna)) {
+                    return {
+                        ...col,
+                        tarefas: col.tarefas.filter(t => t.id !== idTarefa)
+                    };
+                }
+                return col;
+            });
+            setColunas(novasColunas);
+            
+        } catch (error) {
+            alert("Erro ao excluir tarefa");
+            console.error(error);
+        }
+    }
+
+    // --- Drag and Drop ---
     async function onDragEnd(result) {
         if (!result.destination) return;
 
@@ -98,11 +172,7 @@ function Kanban() {
         }
     }
 
-    // --- Renderização Condicional ---
-    
-    if (loading) {
-        return <div style={{ padding: "20px" }}>Carregando tarefas...</div>;
-    }
+    if (loading) return <div>Carregando...</div>;
 
     if (erro) {
         return <div style={{ padding: "20px", color: "red" }}>{erro}</div>;
@@ -110,15 +180,29 @@ function Kanban() {
 
     return (
         <DragDropContext onDragEnd={onDragEnd}>
-            <div style={{ padding: "20px" }}>
-                <h2>Quadro Kanban</h2>
-                { projeto }
+            <div style={{ padding: "20px", height: "100vh", backgroundColor: "#0079bf" }}>
+                <h2 style={{ color: "white" }}>Quadro Kanban</h2>
                 
-                <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '20px' }}>
+                <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', alignItems: "flex-start" }}>
                     {colunas.map((coluna) => (
-                        <KanbanColumn key={coluna.id} coluna={coluna} />
+                        <KanbanColumn 
+                            key={coluna.id} 
+                            coluna={coluna} 
+                            onAddTarefa={abrirModalCriacao}    // Passando função
+                            onEditTarefa={abrirModalEdicao}    // Passando função
+                            onDeleteTarefa={handleExcluirTarefa} // Passando função
+                        />
                     ))}
                 </div>
+
+                {/* O Modal fica aqui, "flutuando" */}
+                <TaskModal 
+                    isOpen={modalAberto}
+                    onClose={() => setModalAberto(false)}
+                    onSave={handleSalvarTarefa}
+                    tarefaParaEditar={tarefaEmEdicao}
+                    colunAlvoId={colunaAlvoId}
+                />
             </div>
         </DragDropContext>
     );
